@@ -3,8 +3,10 @@ package com.Bank.BankSaving.Controllers;
 import com.Bank.BankSaving.Models.Documents.Saving;
 import com.Bank.BankSaving.Models.Entities.ResponseHandler;
 import com.Bank.BankSaving.Service.SavingService;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -62,6 +64,7 @@ public class SavingController {
      * @return
      */
    @PostMapping("Saving/")
+   @CircuitBreaker(name="sequence", fallbackMethod = "fallBackSequence")
     public Mono<ResponseHandler> saveSaving(@RequestBody Saving saving){
        return savingService.create(saving, "Saving Account");
     }
@@ -72,6 +75,7 @@ public class SavingController {
      * @return
      */
     @PostMapping("Current/")
+    @CircuitBreaker(name="sequence", fallbackMethod = "fallBackSequence")
     public Mono<ResponseHandler> saveCurrent(@RequestBody Saving saving){
         return savingService.create(saving, "Current Account");
     }
@@ -82,6 +86,7 @@ public class SavingController {
      * @return
      */
     @PostMapping("FixedTerms/")
+    @CircuitBreaker(name="sequence", fallbackMethod = "fallBackSequence")
     public Mono<ResponseHandler> saveFixedTerms(@RequestBody Saving saving){
         return savingService.create(saving, "Fixed Terms Account");
     }
@@ -95,5 +100,14 @@ public class SavingController {
     @PostMapping()
     public Mono<ResponseHandler> saveAccount(@RequestBody Saving saving){
         return savingService.create(saving, saving.getProduct().getName());
+    }
+
+    /**
+     * Circuit Breaker
+     * @param runtimeException
+     * @return
+     */
+    public Mono<ResponseHandler> fallBackSequence(RuntimeException runtimeException){
+        return Mono.just(new ResponseHandler("Microservice not available", HttpStatus.BAD_REQUEST,runtimeException.getMessage()));
     }
 }
